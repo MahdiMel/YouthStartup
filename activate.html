@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Activate Badge</title>
+    <!-- Load Supabase from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 50px;">
+    <h2>Activate Your Smart Badge</h2>
+    <input type="email" id="emailInput" placeholder="Enter your registered email" style="padding: 10px; width: 250px;">
+    <button onclick="activateUser()" style="padding: 10px;">Activate</button>
+    <p id="status"></p>
+
+    <script>
+        // REPLACE WITH YOUR SUPABASE URL AND ANON KEY
+        const supabaseUrl = 'https://YOUR_PROJECT_ID.supabase.co';
+        const supabaseKey = 'YOUR_ANON_KEY';
+        const supabase = supabaseClient.createClient(supabaseUrl, supabaseKey);
+
+        async function activateUser() {
+            const email = document.getElementById('emailInput').value;
+            const statusMsg = document.getElementById('status');
+            statusMsg.innerText = "Checking...";
+
+            // Find the user by email
+            const { data, error } = await supabase
+                .from('attendees')
+                .select('id')
+                .eq('email', email)
+                .single();
+
+            if (error || !data) {
+                statusMsg.innerText = "Email not found. Please check for typos.";
+                return;
+            }
+
+            // Save the ID to the phone's local storage
+            localStorage.setItem('scanner_id', data.id);
+            statusMsg.style.color = "green";
+            statusMsg.innerText = "Badge Activated! You can now scan other participants.";
+        }
+    </script>
+</body>
+</html>

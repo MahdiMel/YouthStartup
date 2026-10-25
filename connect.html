@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connecting...</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 50px;">
+    <h2 id="statusMessage">Saving connection...</h2>
+
+    <script>
+        const supabaseUrl = 'https://YOUR_PROJECT_ID.supabase.co';
+        const supabaseKey = 'YOUR_ANON_KEY';
+        const supabase = supabaseClient.createClient(supabaseUrl, supabaseKey);
+
+        async function processScan() {
+            // 1. Get the scanner's ID from their phone
+            const scannerId = localStorage.getItem('scanner_id');
+            
+            // If they haven't activated, send them to the setup page
+            if (!scannerId) {
+                window.location.replace('activate.html');
+                return;
+            }
+
+            // 2. Get the scanned person's ID from the URL parameter (e.g., ?scanned=UUID)
+            const urlParams = new URLSearchParams(window.location.search);
+            const scannedId = urlParams.get('scanned');
+
+            if (!scannedId) {
+                document.getElementById('statusMessage').innerText = "Invalid QR Code.";
+                return;
+            }
+
+            // 3. Log the connection in Supabase
+            const { error: insertError } = await supabase
+                .from('connections')
+                .insert([{ scanner_id: scannerId, scanned_id: scannedId }]);
+            
+            // Ignore duplicate errors (if they scan the same person twice)
+            if (insertError && insertError.code !== '23505') { 
+                document.getElementById('statusMessage').innerText = "Error saving connection.";
+                return;
+            }
+
+            // 4. Fetch the scanned person's LinkedIn URL to redirect
+            const { data: userData } = await supabase
+                .from('attendees')
+                .select('linkedin_url')
+                .eq('id', scannedId)
+                .single();
+
+            document.getElementById('statusMessage').innerText = "Connection Saved! Redirecting...";
+            document.getElementById('statusMessage').style.color = "green";
+            
+            // 5. Redirect to LinkedIn
+            setTimeout(() => {
+                if (userData && userData.linkedin_url) {
+                    window.location.replace(userData.linkedin_url);
+                } else {
+                    document.getElementById('statusMessage').innerText = "Connection saved, but no LinkedIn URL found.";
+                }
+            }, 800); // Slight delay so they see the success message
+        }
+
+        // Run immediately when page loads
+        processScan();
+    </script>
+</body>
+</html>
